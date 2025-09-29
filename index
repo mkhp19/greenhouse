@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>見積・発注・請求 v1.11</title>
+<link rel="icon" href="data:,">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  	
+  :root{ --bg:#f7f8fa;--card:#fff;--line:#e5e7eb;--text:#111827;--muted:#6b7280;
+         --primary:#165b4a; --accent:#0ea5a0;--warn:#ef4444 }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);z-index:10}
+  header .wrap{max-width:1200px;margin:auto;display:flex;gap:12px;align-items:center;padding:10px 16px}
+  h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:#fff;background:var(--primary);padding:2px 8px;border-radius:999px}
+  main{max-width:1200px;margin:12px auto;padding:0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .card h2{font-size:16px;margin:0;padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .card .body{padding:12px}
+  label{font-size:12px;color:var(--muted)}
+  input,select,textarea,button{font:inherit}
+  input[type="text"],input[type="number"],input[type="date"],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  textarea{resize:vertical}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  button{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  button.accent{background:var(--accent);border-color:var(--accent);color:#fff}
+  .list{display:flex;flex-direction:column;gap:8px;max-height:65vh;overflow:auto}
+  .item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;align-items:center;background:#fff}
+  .item img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
+  .count{font-size:12px;color:#6b7280}
+  .price{font-weight:800;text-align:right}
+  .kmeta{font-size:12px;color:#6b7280}
+  #homeView .menu{display:flex;gap:16px;justify-content:center;margin:48px 0;flex-wrap:wrap}
+  #homeView .menu button{font-size:18px;padding:16px 24px;border-radius:999px}
+  .center-card{max-width:760px;margin:16px auto}
+  .grid{display:grid;grid-template-columns:420px 1fr;gap:12px}
+  @media (max-width: 900px){ .grid{display:block} .list{max-height:none} }
+  table.doc-table{width:100%;border-collapse:collapse}
+  .doc-table th,.doc-table td{border:1px solid #ddd;padding:6px;font-size:12px}
+  @media print{ body *{visibility:hidden !important} #printArea, #printArea *{visibility:visible !important} #printArea{position:absolute;left:0;top:0;width:100%} .no-print{display:none !important} }
+  /* スマホのみメインメニューを縦並び */
+  @media (max-width: 600px){
+  #homeView .menu{
+    flex-direction: column;   /* 横→縦 */
+    align-items: stretch;      /* ボタンを横幅いっぱいに */
+    gap: 10px;                 /* すき間を少し詰める（任意） */
+  }
+  #homeView .menu button{
+    width: 100%;
+  }
+}	
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>見積・発注・請求 <span class="badge">v1.11</span></h1>
+    <div style="margin-left:auto;display:flex;gap:8px" class="no-print">
+      <button onclick="showView('home')">ホーム</button>
+      <button onclick="showView('product')">商品検索</button>
+      <button onclick="showView('customer')">顧客リスト</button>
+      <button onclick="showView('doc')" class="primary">書類作成</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Home -->
+  <section id="homeView" class="center-card card">
+    <h2>メインメニュー</h2>
+    <div class="body">
+      <div class="menu">
+        <button class="accent" onclick="showView('product')">商品検索</button>
+        <button onclick="showView('customer')">顧客リスト</button>
+        <button class="primary" onclick="showView('doc')">書類作成</button>
+      </div>
+    </div>
+  </section>
+  <!-- Product search -->
+  <section id="productView" class="center-card card" style="display:none">
+    <h2>商品検索 <span class="count" id="masterCount_ps"></span></h2>
+    <div class="body">
+      <div class="toolbar">
+        <input type="file" id="masterFile_ps" accept=".csv,.xls,.xlsx" onchange="loadMasterFile_ps(event)">
+        <button onclick="clearMasterCache_ps()">マスタをクリア</button>
+        <button onclick="showView('home')">ホームへ戻る</button>
+      </div>
+      <div style="margin-top:8px">
+        <label>検索（品名・品番のみ）</label>
+        <input type="text" id="searchBox_ps" placeholder="例: φ19, A-001, ボルト" oninput="searchMaster_ps()">
+      </div>
+      <div class="list" id="masterList_ps" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- Customer only view -->
+  <section id="customerView" class="center-card card" style="display:none">
+    <h2>顧客リスト <span class="count" id="customerCount"></span></h2>
+    <div class="body">
+      <div class="toolbar">
+        <input id="customerSearch_full" type="text" placeholder="顧客名・住所・TEL・備考で検索" oninput="renderCustomerListFull()">
+        <button class="accent" onclick="addNewCustomer()">新規登録</button>
+        <input type="file" id="customerFile_full" accept=".csv,.xls,.xlsx" style="display:none" onchange="importCustomersFile(event,true)">
+        <button onclick="document.getElementById('customerFile_full').click()">Excel読込</button>
+        <button onclick="exportCustomersExcel()">Excel出力</button>
+        <button onclick="downloadCustomerSample()">サンプルDL</button>
+        <button onclick="showView('home')">ホームへ戻る</button>
+      </div>
+
+      <!-- ▼ 顧客フォーム（新規/編集 共通・郵便番号は自動ハイフン＆住所自動入力） -->
+      <div id="customerForm_full" class="card" style="display:none; margin-top:8px;">
+        <h2>顧客フォーム</h2>
+        <div class="body">
+          <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px">
+            <div>
+              <label>宛名</label>
+              <input type="text" id="cf_client" placeholder="例：〇〇株式会社 御中 / 〇〇様">
+            </div>
+            <div>
+              <label>郵便番号</label>
+              <input type="text" id="cf_zip" placeholder="例: 649-6433"
+                     oninput="formatZipLive(this)" onblur="lookupZipTo('cf_zip','cf_address')">
+            </div>
+            <div>
+              <label>住所</label>
+              <input type="text" id="cf_address" placeholder="都道府県 市区町村 町域 …">
+            </div>
+            <div>
+              <label>電話番号</label>
+              <input type="text" id="cf_tel" placeholder="例：0736-**-****">
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <label>備考（書類には出力しません）</label>
+            <textarea id="cf_note" rows="3" placeholder="社内向けメモや注意事項など"></textarea>
+          </div>
+          <div class="toolbar" style="margin-top:8px">
+            <button class="primary" onclick="saveCustomerFull()">保存</button>
+            <button onclick="cancelCustomerFull()">キャンセル</button>
+          </div>
+        </div>
+      </div>
+      <!-- ▲ 顧客フォーム -->
+
+      <div class="list" id="customerList_full" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- Document maker -->
+  <section id="docView" class="card" style="display:none">
+    <h2>書類作成</h2>
+    <div class="body">
+      <div class="toolbar">
+        <button onclick="showView('home')">ホームへ戻る</button>
+        <button onclick="openPrint()">プレビュー / PDF</button>
+        <button onclick="exportExcel()">Excel出力</button>
+        <button onclick="saveLocal()">保存（ローカル）</button>
+        <button onclick="loadLocal()">読込（ローカル）</button>
+      </div>
+      <div class="grid">
+        <section class="card">
+          <h2>商品マスタ <span class="count" id="masterCount"></span></h2>
+          <div class="body">
+            <div class="toolbar">
+              <input type="file" id="masterFile" accept=".csv,.xls,.xlsx" onchange="loadMasterFile(event)">
+              <button onclick="clearMasterCache()">マスタをクリア</button>
+            </div>
+            <div style="margin-top:8px">
+              <label>検索（品名・品番のみ）</label>
+              <input type="text" id="searchBox" placeholder="例: φ19, A-001, ボルト" oninput="searchMaster()">
+            </div>
+            <div class="list" id="masterList" style="margin-top:8px"></div>
+          </div>
+        </section>
+
+        <section class="card accordion">
+          <h2 onclick="toggleDoc()">書類フォーム <span id="toggleIcon">▼</span></h2>
+          <div class="body" id="docBody">
+            <div class="toolbar">
+              <label>書類種別</label>
+              <select id="docType" onchange="onDocTypeChange()">
+                <option>御見積書</option>
+                <option>請求書</option>
+                <option>発注書</option>
+              </select>
+              <input type="text" id="docNo" placeholder="No">
+              <input type="date" id="docDate">
+              <input type="text" id="staff" placeholder="担当者（例：児玉 征紀）">
+            </div>
+            <h3>宛先</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px">
+              <div><label>宛名</label><input type="text" id="client" placeholder="例：〇〇株式会社 御中 / 〇〇様"></div>
+              <div><label>郵便番号</label>
+                   <input type="text" id="zip" placeholder="例: 649-6433"
+                          oninput="formatZipLive(this)" onblur="lookupZipTo('zip','address')"></div>
+              <div><label>住所</label><input type="text" id="address" placeholder="都道府県 市区町村 町域 …"></div>
+              <div><label>電話番号</label><input type="text" id="tel" placeholder="例：03-1234-5678"></div>
+            </div>
+
+            <!-- 顧客リスト操作（書類側） -->
+            <div class="toolbar">
+              <button class="accent" onclick="registerCustomer()">宛先を顧客登録</button>
+              <button onclick="openCustomerModal()">顧客から呼び出す…</button>
+              <input type="file" id="customerFile" accept=".csv,.xls,.xlsx" style="display:none" onchange="importCustomersFile(event)">
+              <button onclick="document.getElementById('customerFile').click()">顧客Excel読込</button>
+              <button onclick="exportCustomersExcel()">顧客Excel出力</button>
+              <button onclick="downloadCustomerSample()">顧客サンプルDL</button>
+            </div>
+
+            <div class="toolbar">
+              <button onclick="addRow()">明細を追加</button>
+            </div>
+
+            <table class="doc-table" id="itemTable">
+              <thead>
+                <tr>
+                  <th>#</th><th>商品名</th><th>品番</th><th>数量</th><th id="unitHead">単価</th><th>小計</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+
+            <div class="row">
+              <div>
+                <label>備考</label>
+                <textarea id="notes" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <div id="printArea" class="print-doc"></div>
+
+  <!-- 顧客リスト モーダル（書類側：選択専用） -->
+  <div id="customerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;align-items:center;justify-content:center">
+    <div style="width:min(720px,92vw);max-height:80vh;background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;display:flex;flex-direction:column">
+      <div style="padding:10px 12px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;align-items:center">
+        <strong>顧客リスト</strong>
+        <input id="customerSearch" type="text" placeholder="顧客名・住所・TEL・備考で検索" style="margin-left:auto;min-width:240px;padding:8px;border:1px solid #e5e7eb;border-radius:8px">
+        <button onclick="closeCustomerModal()">閉じる</button>
+      </div>
+      <div id="customerList" style="padding:12px;overflow:auto"></div>
+    </div>
+  </div>
+</main>
+
+<!-- アプリ本体 -->
+<script src="app_v1_11.js"></script>
+</body>
+</html>
