@@ -1,257 +1,855 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
+<html lang="ja"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>見積・発注・請求 v1.11</title>
-<link rel="icon" href="data:,">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<title>業務WEBアプリ（UIモック v1.1）</title>
 <style>
-  	
-  :root{ --bg:#f7f8fa;--card:#fff;--line:#e5e7eb;--text:#111827;--muted:#6b7280;
-         --primary:#165b4a; --accent:#0ea5a0;--warn:#ef4444 }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);z-index:10}
-  header .wrap{max-width:1200px;margin:auto;display:flex;gap:12px;align-items:center;padding:10px 16px}
-  h1{font-size:18px;margin:0}
-  .badge{font-size:12px;color:#fff;background:var(--primary);padding:2px 8px;border-radius:999px}
-  main{max-width:1200px;margin:12px auto;padding:0 12px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
-  .card h2{font-size:16px;margin:0;padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-  .card .body{padding:12px}
-  label{font-size:12px;color:var(--muted)}
-  input,select,textarea,button{font:inherit}
-  input[type="text"],input[type="number"],input[type="date"],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
-  textarea{resize:vertical}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-  button{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
-  button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-  button.accent{background:var(--accent);border-color:var(--accent);color:#fff}
-  .list{display:flex;flex-direction:column;gap:8px;max-height:65vh;overflow:auto}
-  .item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;align-items:center;background:#fff}
-  .item img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
-  .count{font-size:12px;color:#6b7280}
-  .price{font-weight:800;text-align:right}
-  .kmeta{font-size:12px;color:#6b7280}
-  #homeView .menu{display:flex;gap:16px;justify-content:center;margin:48px 0;flex-wrap:wrap}
-  #homeView .menu button{font-size:18px;padding:16px 24px;border-radius:999px}
-  .center-card{max-width:760px;margin:16px auto}
-  .grid{display:grid;grid-template-columns:420px 1fr;gap:12px}
-  @media (max-width: 900px){ .grid{display:block} .list{max-height:none} }
-  table.doc-table{width:100%;border-collapse:collapse}
-  .doc-table th,.doc-table td{border:1px solid #ddd;padding:6px;font-size:12px}
-  @media print{ body *{visibility:hidden !important} #printArea, #printArea *{visibility:visible !important} #printArea{position:absolute;left:0;top:0;width:100%} .no-print{display:none !important} }
-  /* スマホのみメインメニューを縦並び */
-  @media (max-width: 600px){
-  #homeView .menu{
-    flex-direction: column;   /* 横→縦 */
-    align-items: stretch;      /* ボタンを横幅いっぱいに */
-    gap: 10px;                 /* すき間を少し詰める（任意） */
+  :root{
+    --bg:#F5F5F7;
+    --card:#FFFFFF;
+    --line:#E5E5EA;
+    --text:#111;
+    --muted:#6C6C70;
+    --accent:#007AFF;
+    --danger:#FF3B30;
+    --success:#34C759;
+    --pill:#EFEFF4;
+    --shadow:0 2px 6px rgba(0,0,0,.06);
+    --radius:12px;
   }
-  #homeView .menu button{
-    width: 100%;
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Segoe UI",sans-serif;font-size:16px;line-height:1.5;}
+  .screen{display:none;min-height:100vh;padding-top:56px;padding-bottom:72px;}
+  .screen.active{display:block;}
+  /* Top bar */
+  .topbar{position:fixed;top:0;left:0;right:0;height:56px;background:var(--bg);backdrop-filter:saturate(180%) blur(10px);display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);z-index:10;}
+  .topbar .title{font-weight:700;}
+  .topbar .left,.topbar .right{position:absolute;top:0;height:56px;display:flex;align-items:center;}
+  .topbar .left{left:12px;}
+  .topbar .right{right:12px;gap:8px;}
+  .link{color:var(--accent);text-decoration:none;font-weight:600;}
+  .btn{min-height:44px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-danger{background:var(--danger);color:#fff;border-color:var(--danger);}
+  .btn[disabled]{opacity:.4;pointer-events:none;}
+  /* Bottom bar */
+  .bottombar{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);display:flex;gap:12px;justify-content:flex-end;padding:10px 12px;z-index:10;}
+  /* content */
+  .container{padding:16px;}
+  .section{margin:0 0 24px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+  .card .header{padding:8px 16px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--line);}
+  .list{display:block;}
+  .list-row{display:flex;align-items:center;justify-content:space-between;box-sizing:border-box;padding:12px 16px;min-height:48px;border-bottom:1px solid var(--line);}
+  .list-row:last-child{border-bottom:none;}
+  .disclosure{color:var(--muted);}
+  .field-label{font-size:14px;color:var(--muted);margin:6px 16px 6px;}
+  .input, select, textarea{box-sizing:border-box;width:100%;padding:12px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:16px;}
+  .input:focus, select:focus, textarea:focus{outline:2px solid rgba(0,122,255,.3);border-color:var(--accent);}
+  .row-flex{display:flex;gap:12px;}
+  .row-flex .input{flex:1;}
+  .pill{display:inline-block;background:var(--pill);padding:6px 10px;border-radius:16px;font-size:14px;}
+  .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#E6F0FF;color:#0451C8;font-size:12px;margin-left:6px;}
+  .title-lg{font-size:20px;font-weight:700;margin:6px 0 12px;}
+  .muted{color:var(--muted);}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+  .toolbar .grow{flex:1 1 auto;}
+  .searchbar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 12px;}
+  .searchbar input{border:none;outline:none;font-size:16px;width:100%;}
+  .badge{display:inline-block;border:1px solid var(--line);padding:4px 8px;border-radius:999px;font-size:12px;background:#fff;}
+  .spacer{height:8px;}
+  .hint{font-size:13px;color:var(--muted);margin-top:6px;}
+  .grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media(min-width:880px){
+    .screen{padding-top:64px;padding-bottom:80px;}
+    .container{max-width:880px;margin:0 auto;}
+    .grid4{grid-template-columns:repeat(4,1fr);}
   }
-}	
+
+  /* flex-direction column fix */
+  .list-row[style*="flex-direction:column"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* fix: two-column rows should not overflow */
+  .row-flex{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch;}
+  .row-flex > *{min-width:0;}
+  @media (max-width:380px){
+    .row-flex{grid-template-columns:1fr;} /* 極小画面でも安全に1列化 */
+  }
+  .row-flex > *{flex:1 1 0;min-width:0;} /* allow shrink */
+  input[type="date"]{-webkit-appearance:none;appearance:none;width:100%;max-width:100%;min-width:0;box-sizing:border-box;}
+  .input, select, textarea{max-width:100%;min-width:0;}
+  .list-row{overflow:hidden;} /* guard against child overflow */
+
+.input-wrap{min-width:0;}
+
+  /* unify control heights (iOS Safari friendly) */
+  .input, select, textarea{min-height:48px; line-height:1.3;}
+  input[type="date"]{
+    -webkit-appearance:none; appearance:none;
+    width:100%; max-width:100%; min-width:0; box-sizing:border-box;
+    min-height:48px; height:48px; padding:10px 12px; border-radius:10px;
+  }
+  /* grid row keeps equal heights */
+  .row-flex{align-items:stretch;}
+
+
+  /* ==== Documents list visual differentiation ==== */
+  .doc-card{display:flex; align-items:center; gap:12px; padding:12px 16px; min-height:56px; border-bottom:1px solid var(--line); position:relative;}
+  .doc-card:last-child{border-bottom:none;}
+  .doc-card .icon{font-size:20px; width:24px; text-align:center;}
+  .doc-main{flex:1; min-width:0;}
+  .doc-title{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .doc-sub{font-size:13px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .doc-tag{display:inline-block; font-size:12px; font-weight:700; color:#fff; padding:2px 8px; border-radius:999px; margin-left:8px;}
+  .estimate-tag{background:#007AFF;}
+  .order-tag{background:#34C759;}
+  .invoice-tag{background:#FF3B30;}
+  .doc-card.estimate{border-left:4px solid #007AFF; padding-left:12px;}
+  .doc-card.order{border-left:4px solid #34C759; padding-left:12px;}
+  .doc-card.invoice{border-left:4px solid #FF3B30; padding-left:12px;}
+  .doc-right{color:var(--muted);}
+
+
+  /* pale backgrounds for doc types */
+  .doc-card.estimate{ background:#E6F0FF; }
+  .doc-card.order{ background:#E8F8E6; }
+  .doc-card.invoice{ background:#FFEAEA; }
+  /* keep left border visible on colored bg */
+  .doc-card.estimate{ border-left-color:#007AFF; }
+  .doc-card.order{ border-left-color:#34C759; }
+  .doc-card.invoice{ border-left-color:#FF3B30; }
+
+
+  /* Documents toolbar: single row, no wrap; scroll horizontally if overflow */
+  .docs-toolbar{display:flex;align-items:center;gap:2px;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;}
+  .docs-toolbar .btn{flex:0 0 auto;}
+  .docs-toolbar select.input{flex:0 0 auto;max-width:70px;font-size:12px;padding:8px 8px;height:44px;min-height:44px;line-height:22px;border-radius:12px;-webkit-appearance:none;appearance:none;}
+
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <h1>見積・発注・請求 <span class="badge">v1.11</span></h1>
-    <div style="margin-left:auto;display:flex;gap:8px" class="no-print">
-      <button onclick="showView('home')">ホーム</button>
-      <button onclick="showView('product')">商品検索</button>
-      <button onclick="showView('customer')">顧客リスト</button>
-      <button onclick="showView('doc')" class="primary">書類作成</button>
+
+<!-- Topbar (shared) -->
+<div class="topbar">
+  <div class="left"><a class="link" href="#" id="backBtn" aria-label="戻る" onclick="goBack()" style="display: none;">戻る</a></div>
+  <div class="title" id="topTitle">業務アプリ</div>
+  <div class="right"><button class="btn btn-primary" id="saveBtn" disabled="">保存</button></div>
+</div>
+
+<!-- Home -->
+<section id="home" class="screen active" aria-label="ホーム">
+  <div class="container">
+    <h1 class="title-lg">メニュー</h1>
+    <div class="grid4">
+      <button class="btn" onclick="showView('product')">商品検索</button>
+      <button class="btn" onclick="showView('customer')">顧客リスト</button>
+      <button class="btn" onclick="showView('vendor')">取引先リスト</button>
+      <button class="btn" onclick="showView('docs')">書類作成</button>
+      <button class="btn" onclick="showView('settings')">設定</button>
+    </div>
+    <div class="section">
+      <div class="card">
+        <div class="header">はじめての方へ</div>
+        <div class="list">
+          <div class="list-row">1. 商品を検索して見積書に取り込み</div>
+          <div class="list-row">2. 見積書を保存 → PDF/Excel出力</div>
+          <div class="list-row">3. 発注書/請求書を作成</div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <button class="btn" onclick="alert('JSONを書き出すUI想定（ダミー）')">🗂 バックアップ（JSON）</button>
+      <button class="btn" onclick="alert('JSONを読み込むUI想定（ダミー）')">📥 復元（JSON）</button>
     </div>
   </div>
-</header>
+</section>
 
-<main>
-  <!-- Home -->
-  <section id="homeView" class="center-card card">
-    <h2>メインメニュー</h2>
-    <div class="body">
-      <div class="menu">
-        <button class="accent" onclick="showView('product')">商品検索</button>
-        <button onclick="showView('customer')">顧客リスト</button>
-        <button class="primary" onclick="showView('doc')">書類作成</button>
+<!-- Product Search -->
+<section id="product" class="screen" aria-label="商品検索">
+  <div class="container">
+    <div class="title-lg">商品検索</div>
+    <div class="toolbar">
+      <label class="searchbar grow" aria-label="検索バー">
+        🔎 <input type="search" id="pQuery" placeholder="品名・品番で検索">
+      </label>
+      <button class="btn" onclick="showSheet('productForm')">＋ 新規登録</button>
+      <span class="badge">条件: <span id="condText">（未指定）</span></span>
+      <button class="btn" onclick="alert('商品リスト.xlsx 読込ダイアログ想定（ダミー）')">Excel読込</button>
+      <button class="btn" onclick="alert('商品リスト.xlsx 出力ダイアログ想定（ダミー）')">Excel出力</button>
+    </div>
+
+    <div class="card section">
+      <div class="header">プレビュー（品名/品番/規格/参照日/販売単価）</div>
+      <div class="list" id="pList">
+        <!-- sample rows -->
+      <div class="list-row"><div>
+      <div><strong>補強パイプ</strong> <span class="muted">(HLG-74)</span></div>
+      <div class="muted">直径22mm x 1.5mm ・ 参照日 2025/09/01</div>
+    </div>
+    <div>¥1,280 <span class="disclosure">&gt;</span></div></div><div class="list-row"><div>
+      <div><strong>固定クランプ</strong> <span class="muted">(CTL2-82)</span></div>
+      <div class="muted">25mm用 ・ 参照日 2025/08/20</div>
+    </div>
+    <div>¥350 <span class="disclosure">&gt;</span></div></div><div class="list-row"><div>
+      <div><strong>透明フィルム</strong> <span class="muted">(BPD-64)</span></div>
+      <div class="muted">0.1mm x 2m ・ 参照日 2025/07/12</div>
+    </div>
+    <div>¥980 <span class="disclosure">&gt;</span></div></div></div>
+    </div>
+    <div class="hint">行をタップすると見積明細に取り込む想定（UIモック）。</div>
+  </div>
+
+  <div class="bottombar">
+    <button class="btn" onclick="showView('home')">一覧へ</button>
+    <button class="btn btn-primary" onclick="alert('見積書に取り込むフローのUIモックです')">見積書に取り込む</button>
+  </div>
+</section>
+
+<!-- Customer -->
+<section id="customer" class="screen" aria-label="顧客リスト">
+  <div class="container">
+    <div class="title-lg">顧客リスト</div>
+    <div class="toolbar">
+      <label class="searchbar grow">🔎 <input type="search" placeholder="顧客名・住所・TEL・備考"></label>
+      <button class="btn" onclick="showSheet('customerForm')">＋ 新規登録</button>
+      <select class="input" style="max-width:180px">
+        <option>仕事内容（すべて）</option>
+        <option>新築</option>
+        <option>修繕</option>
+        <option>張替</option>
+      </select>
+      <button class="btn" onclick="alert('Excel読込ダイアログ想定（ダミー）')">Excel読込</button>
+      <button class="btn" onclick="alert('Excel出力ダイアログ想定（ダミー）')">Excel出力</button>
+    </div>
+
+    <div class="card">
+      <div class="list">
+        <div class="list-row">フルハウス児玉 <span class="disclosure">&gt;</span></div>
+        <div class="list-row">株式会社グリーンフィールド <span class="disclosure">&gt;</span></div>
+        <div class="list-row">山田太郎（個人） <span class="disclosure">&gt;</span></div>
       </div>
     </div>
-  </section>
-  <!-- Product search -->
-  <section id="productView" class="center-card card" style="display:none">
-    <h2>商品検索 <span class="count" id="masterCount_ps"></span></h2>
-    <div class="body">
-      <div class="toolbar">
-        <input type="file" id="masterFile_ps" accept=".csv,.xls,.xlsx" onchange="loadMasterFile_ps(event)">
-        <button onclick="clearMasterCache_ps()">マスタをクリア</button>
-        <button onclick="showView('home')">ホームへ戻る</button>
-      </div>
-      <div style="margin-top:8px">
-        <label>検索（品名・品番のみ）</label>
-        <input type="text" id="searchBox_ps" placeholder="例: φ19, A-001, ボルト" oninput="searchMaster_ps()">
-      </div>
-      <div class="list" id="masterList_ps" style="margin-top:8px"></div>
+  </div>
+
+  <div class="bottombar">
+    <button class="btn" onclick="showView('home')">一覧へ</button>
+  </div>
+</section>
+
+<!-- Vendor -->
+<section id="vendor" class="screen" aria-label="取引先リスト">
+  <div class="container">
+    <div class="title-lg">取引先リスト</div>
+    <div class="toolbar">
+      <label class="searchbar grow">🔎 <input type="search" placeholder="会社名・住所・TEL・備考"></label>
+      <button class="btn" onclick="showSheet('vendorForm')">＋ 新規登録</button>
+      <button class="btn" onclick="alert('Excel読込ダイアログ想定（ダミー）')">Excel読込</button>
+      <button class="btn" onclick="alert('Excel出力ダイアログ想定（ダミー）')">Excel出力</button>
     </div>
-  </section>
-
-  <!-- Customer only view -->
-  <section id="customerView" class="center-card card" style="display:none">
-    <h2>顧客リスト <span class="count" id="customerCount"></span></h2>
-    <div class="body">
-      <div class="toolbar">
-        <input id="customerSearch_full" type="text" placeholder="顧客名・住所・TEL・備考で検索" oninput="renderCustomerListFull()">
-        <button class="accent" onclick="addNewCustomer()">新規登録</button>
-        <input type="file" id="customerFile_full" accept=".csv,.xls,.xlsx" style="display:none" onchange="importCustomersFile(event,true)">
-        <button onclick="document.getElementById('customerFile_full').click()">Excel読込</button>
-        <button onclick="exportCustomersExcel()">Excel出力</button>
-        <button onclick="downloadCustomerSample()">サンプルDL</button>
-        <button onclick="showView('home')">ホームへ戻る</button>
+    <div class="card">
+      <div class="list">
+        <div class="list-row">株式会社ラックスター <span class="disclosure">&gt;</span></div>
+        <div class="list-row">松誼金属工業 <span class="disclosure">&gt;</span></div>
+        <div class="list-row">TOKUI Co., Ltd. <span class="disclosure">&gt;</span></div>
       </div>
+    </div>
+  </div>
+  <div class="bottombar">
+    <button class="btn" onclick="showView('home')">一覧へ</button>
+  </div>
+</section>
 
-      <!-- ▼ 顧客フォーム（新規/編集 共通・郵便番号は自動ハイフン＆住所自動入力） -->
-      <div id="customerForm_full" class="card" style="display:none; margin-top:8px;">
-        <h2>顧客フォーム</h2>
-        <div class="body">
-          <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px">
-            <div>
-              <label>宛名</label>
-              <input type="text" id="cf_client" placeholder="例：〇〇株式会社 御中 / 〇〇様">
-            </div>
-            <div>
-              <label>郵便番号</label>
-              <input type="text" id="cf_zip" placeholder="例: 649-6433"
-                     oninput="formatZipLive(this)" onblur="lookupZipTo('cf_zip','cf_address')">
-            </div>
-            <div>
-              <label>住所</label>
-              <input type="text" id="cf_address" placeholder="都道府県 市区町村 町域 …">
-            </div>
-            <div>
-              <label>電話番号</label>
-              <input type="text" id="cf_tel" placeholder="例：0736-**-****">
-            </div>
+<!-- Settings -->
+<section id="settings" class="screen" aria-label="設定">
+  <div class="container">
+    <div class="title-lg">設定（自社情報）</div>
+    <div class="card section">
+      <div class="header">会社情報</div>
+      <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <label class="field-label">社名</label><input class="input" id="s_name" placeholder="フルハウス児玉" oninput="markDirty()">
+      </div>
+      <div class="list-row row-flex">
+        <div style="flex:1"><label class="field-label">郵便番号</label><input class="input" id="s_zip" placeholder="649-6514" oninput="markDirty()"></div>
+        <div style="flex:2"><label class="field-label">住所</label><input class="input" id="s_addr" placeholder="和歌山県紀の川市藤井916" oninput="markDirty()"></div>
+      </div>
+      <div class="list-row row-flex">
+        <div style="flex:1"><label class="field-label">代表名</label><input class="input" id="s_rep" placeholder="児玉征紀（こだま もとき）" oninput="markDirty()"></div>
+        <div style="flex:1"><label class="field-label">TEL</label><input class="input" id="s_tel" placeholder="0736-73-3038" oninput="markDirty()"></div>
+      </div>
+      <div class="list-row row-flex">
+        <div style="flex:1"><label class="field-label">登録番号</label><input class="input" id="s_tax" placeholder="T4810046688050" oninput="markDirty()"></div>
+        <div style="flex:1"><label class="field-label">メール</label><input class="input" id="s_mail" placeholder="info@example.com" oninput="markDirty()"></div>
+      </div>
+    </div>
+    <div class="card section">
+      <div class="header">振込先</div>
+      <div class="list-row row-flex">
+        <div style="flex:1"><label class="field-label">銀行</label><input class="input" id="b_bank" placeholder="紀陽銀行" oninput="markDirty()"></div>
+        <div style="flex:1"><label class="field-label">支店</label><input class="input" id="b_branch" placeholder="打田支店" oninput="markDirty()"></div>
+      </div>
+      <div class="list-row row-flex">
+        <div style="flex:1"><label class="field-label">口座種別</label><input class="input" id="b_type" placeholder="普通" oninput="markDirty()"></div>
+        <div style="flex:1"><label class="field-label">口座番号</label><input class="input" id="b_no" placeholder="336048" oninput="markDirty()"></div>
+      </div>
+    </div>
+    <div class="hint">保存すると請求書/見積書の自社欄に反映（UIモック）。</div>
+  </div>
+  <div class="bottombar">
+    <button class="btn" onclick="showView('home')">ホームへ</button>
+    <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+  </div>
+</section>
+
+<!-- Documents hub -->
+<section id="docs" class="screen" aria-label="書類作成">
+  <div class="container">
+    <div class="title-lg">書類作成</div>
+    <div class="toolbar docs-toolbar">
+      <button class="btn" onclick="showView('estimate')">見積書</button>
+      <button class="btn" onclick="showView('purchase')">発注書</button>
+      <button class="btn" onclick="showView('invoice')">請求書</button>
+      <button class="btn" onclick="alert('書類検索UI（ダミー）')">🔎 書類検索</button>
+      <select class="input" id="docFilter" style="max-width:160px">
+        <option>全て</option>
+        <option>見積書</option>
+        <option>発注書</option>
+        <option>請求書</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="header">作成済み一覧（UIモック）</div>
+      <div class="list" id="docsList">
+        <div class="doc-card estimate">
+          <span class="icon">📝</span>
+          <div class="doc-main">
+            <div class="doc-title">山田工務店御中_20251006K_1 <span class="doc-tag estimate-tag">見積</span></div>
+            <div class="doc-sub">工事名称：外装フレーム補修 ／ 作成日：2025/10/06</div>
           </div>
-          <div style="margin-top:8px">
-            <label>備考（書類には出力しません）</label>
-            <textarea id="cf_note" rows="3" placeholder="社内向けメモや注意事項など"></textarea>
+          <span class="disclosure">&gt;</span>
+        </div>
+        <div class="doc-card order">
+          <span class="icon">🛒</span>
+          <div class="doc-main">
+            <div class="doc-title">TOKUI_20251004K_1 <span class="doc-tag order-tag">発注</span></div>
+            <div class="doc-sub">納期：2025/10/15 ／ 合計：¥120,000（税込）</div>
           </div>
-          <div class="toolbar" style="margin-top:8px">
-            <button class="primary" onclick="saveCustomerFull()">保存</button>
-            <button onclick="cancelCustomerFull()">キャンセル</button>
+          <span class="disclosure">&gt;</span>
+        </div>
+        <div class="doc-card invoice">
+          <span class="icon">💰</span>
+          <div class="doc-main">
+            <div class="doc-title">請求書 No.20251012_3 <span class="doc-tag invoice-tag">請求</span></div>
+            <div class="doc-sub">支払期限：2025/11/10 ／ 合計：¥1,200,000（税込）</div>
+          </div>
+          <span class="disclosure">&gt;</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bottombar">
+    <button class="btn" onclick="showView('home')">一覧へ</button>
+    <button class="btn btn-primary" onclick="alert('新規作成の導線（ダミー）')">＋ 新規作成</button>
+  </div>
+</section>
+
+<!-- Estimate -->
+<section id="estimate" class="screen" aria-label="見積書作成">
+  <div class="container">
+    <div class="title-lg">見積書作成</div>
+    <div class="section card">
+      <div class="header">宛先</div>
+      <div class="list">
+        <div class="list-row" onclick="selectDemoCustomer()"><span id="estCustomer">顧客（必須）</span><span class="disclosure">&gt;</span></div>
+        <div class="list-row"><span>敬称</span><span class="disclosure" id="estKeisho">御中</span></div>
+      </div>
+    </div>
+    <div class="section card">
+      <div class="header">案件情報</div>
+      <div class="list">
+        <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <label class="field-label">工事名称（必須）</label>
+          <input class="input" id="estTitle" placeholder="例：外装フレーム補修" oninput="checkRequired()">
+        </div>
+        <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <label class="field-label">工事場所</label>
+          <input class="input" placeholder="現場住所を入力">
+        </div>
+        <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <label class="field-label">工事概要</label>
+          <textarea class="input" rows="3" placeholder="概要…"></textarea>
+        </div>
+        <div class="list-row row-flex">
+          <div style="flex:1">
+            <label class="field-label">所要日数（目安）</label>
+            <input class="input" inputmode="numeric" placeholder="例：3">
+          </div>
+          <div style="width:120px;align-self:flex-end;margin-bottom:8px;"><span class="pill">日</span></div>
+        </div>
+        <div class="list-row row-flex">
+          <div class="input-wrap" style="flex:1">
+            <label class="field-label">見積日</label>
+            <input class="input" id="estDate" type="date">
+          </div>
+          <div class="input-wrap" style="flex:1">
+            <label class="field-label">有効期限（必須）</label>
+            <input class="input" id="estDue" type="date" oninput="checkRequired()">
+          </div>
+        </div>
+        <div class="list-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <label class="field-label">発行番号（自動）</label>
+          <div class="pill" id="estNoPreview" style="font-weight:600;">未確定（宛先と日付で自動生成）</div>
+          <div class="hint">形式：顧客名+敬称_YYYYMMDDK_連番（保存時に確定）</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section card">
+      <div class="header">明細（商品から取り込み / 追加）</div>
+      <div class="list">
+        <div class="list-row" onclick="showView('product')">＋ 商品検索から取り込む <span class="disclosure">&gt;</span></div>
+        <div class="list-row" onclick="alert('任意項目追加UI（ダミー）')">＋ 項目を追加 <span class="disclosure">&gt;</span></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="list">
+        <div class="list-row">名称・品名 / 規格・寸法 / 数量 / 単位 / 単価 / 金額 / 備考</div>
+        <div class="list-row muted">（ここに行が並ぶ想定）</div>
+      </div>
+      <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <label class="field-label">値引き</label>
+        <input class="input" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="list-row" style="justify-content:flex-end;gap:16px;">
+        <div>小計 ¥0</div><div>消費税(10%) ¥0</div><div><strong>合計 ¥0</strong></div>
+      </div>
+    </div>
+
+    <div class="hint">PDFでは未入力項目は非表示、Excelでは空欄出力（UIモック）。</div>
+  </div>
+
+  <div class="bottombar">
+    <button class="btn" onclick="showView('docs')">一覧へ</button>
+    <button class="btn" onclick="alert('単価確認フローのUIモック')">単価確認</button>
+    <button class="btn" onclick="alert('発注書作成へ遷移のUIモック')">発注書作成</button>
+    <button class="btn btn-primary" onclick="alert('請求書作成へ遷移のUIモック')">請求書作成</button>
+    <button class="btn btn-primary" onclick="alert('PDFプレビューのUIモック')">プレビュー</button>
+  </div>
+</section>
+
+<!-- Purchase Order -->
+<section id="purchase" class="screen" aria-label="発注書作成">
+  <div class="container">
+    <div class="title-lg">発注書作成</div>
+    <div class="card section">
+      <div class="header">発注先</div>
+      <div class="list">
+        <div class="list-row" onclick="alert('発注先選択UI（ダミー）')"><span>発注先（必須）</span><span class="disclosure">&gt;</span></div>
+        <div class="list-row"><span>支払い条件</span><span class="disclosure">月末締翌月末払 v</span></div>
+      </div>
+    </div>
+    <div class="card section">
+      <div class="header">納品</div>
+      <div class="list-row row-flex">
+        <div style="flex:1">
+          <label class="field-label">納期</label>
+          <input class="input" type="date">
+        </div>
+        <div style="flex:1">
+          <label class="field-label">納品場所</label>
+          <select class="input">
+            <option>和歌山県紀の川市藤井916</option>
+            <option>和歌山県紀の川市藤井1-3</option>
+            <option>工事場所（見積から）</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card section">
+      <div class="header">明細</div>
+      <div class="list-row">（品名/品番/規格/数量/単位/仕入単価/金額/備考）</div>
+      <div class="list-row" style="justify-content:flex-end;gap:16px;">
+        <div>小計 ¥0</div><div>消費税(10%) ¥0</div><div><strong>合計 ¥0</strong></div>
+      </div>
+      <div class="list-row">
+        <div class="muted">税率別内訳：10%対象 税抜 ¥0 / 税額 ¥0</div>
+      </div>
+    </div>
+  </div>
+  <div class="bottombar">
+    <button class="btn" onclick="showView('docs')">一覧へ</button>
+    <button class="btn btn-primary" onclick="alert('PDF出力のUIモック')">PDF出力</button>
+  </div>
+</section>
+
+<!-- Invoice -->
+<section id="invoice" class="screen" aria-label="請求書作成">
+  <div class="container">
+    <div class="title-lg">請求書作成</div>
+    <div class="card section">
+      <div class="header">取引先</div>
+      <div class="list">
+        <div class="list-row" onclick="alert('宛先選択UI（ダミー）')"><span>取引先（必須）</span><span class="disclosure">&gt;</span></div>
+        <div class="list-row"><span>敬称</span><span class="disclosure" id="estKeisho">御中</span></div>
+      </div>
+    </div>
+    <div class="card section">
+      <div class="header">自社情報 / 振込先</div>
+      <div class="list-row"><span id="invSelf">フルハウス児玉 / 紀陽銀行 打田支店 普通:336048</span></div>
+    </div>
+    <div class="card section">
+      <div class="header">基本情報</div>
+      <div class="list">
+        <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <label class="field-label">件名</label>
+          <input class="input" placeholder="例：修繕工事 代金ご請求の件">
+        </div>
+        <div class="row-flex list-row">
+          <div style="flex:1">
+            <label class="field-label">請求書番号（必須）</label>
+            <input class="input" oninput="checkRequired()">
+          </div>
+          <div style="flex:1">
+            <label class="field-label">枝番</label>
+            <input class="input">
+          </div>
+        </div>
+        <div class="row-flex list-row">
+          <div style="flex:1">
+            <label class="field-label">請求日（必須）</label>
+            <input class="input" type="date" oninput="checkRequired()">
+          </div>
+          <div style="flex:1">
+            <label class="field-label">支払期限</label>
+            <input class="input" type="date">
           </div>
         </div>
       </div>
-      <!-- ▲ 顧客フォーム -->
-
-      <div class="list" id="customerList_full" style="margin-top:8px"></div>
     </div>
-  </section>
-
-  <!-- Document maker -->
-  <section id="docView" class="card" style="display:none">
-    <h2>書類作成</h2>
-    <div class="body">
-      <div class="toolbar">
-        <button onclick="showView('home')">ホームへ戻る</button>
-        <button onclick="openPrint()">プレビュー / PDF</button>
-        <button onclick="exportExcel()">Excel出力</button>
-        <button onclick="saveLocal()">保存（ローカル）</button>
-        <button onclick="loadLocal()">読込（ローカル）</button>
+    <div class="card section">
+      <div class="header">明細</div>
+      <div class="list-row">（日付/名称・品名/規格・寸法/数量/単位/単価/金額/備考）</div>
+      <div class="list-row" style="justify-content:flex-end;gap:16px;">
+        <div>小計 ¥0</div><div>消費税(10%) ¥0</div><div><strong>合計 ¥0</strong></div>
       </div>
-      <div class="grid">
-        <section class="card">
-          <h2>商品マスタ <span class="count" id="masterCount"></span></h2>
-          <div class="body">
-            <div class="toolbar">
-              <input type="file" id="masterFile" accept=".csv,.xls,.xlsx" onchange="loadMasterFile(event)">
-              <button onclick="clearMasterCache()">マスタをクリア</button>
-            </div>
-            <div style="margin-top:8px">
-              <label>検索（品名・品番のみ）</label>
-              <input type="text" id="searchBox" placeholder="例: φ19, A-001, ボルト" oninput="searchMaster()">
-            </div>
-            <div class="list" id="masterList" style="margin-top:8px"></div>
-          </div>
-        </section>
-
-        <section class="card accordion">
-          <h2 onclick="toggleDoc()">書類フォーム <span id="toggleIcon">▼</span></h2>
-          <div class="body" id="docBody">
-            <div class="toolbar">
-              <label>書類種別</label>
-              <select id="docType" onchange="onDocTypeChange()">
-                <option>御見積書</option>
-                <option>請求書</option>
-                <option>発注書</option>
-              </select>
-              <input type="text" id="docNo" placeholder="No">
-              <input type="date" id="docDate">
-              <input type="text" id="staff" placeholder="担当者（例：児玉 征紀）">
-            </div>
-            <h3>宛先</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px">
-              <div><label>宛名</label><input type="text" id="client" placeholder="例：〇〇株式会社 御中 / 〇〇様"></div>
-              <div><label>郵便番号</label>
-                   <input type="text" id="zip" placeholder="例: 649-6433"
-                          oninput="formatZipLive(this)" onblur="lookupZipTo('zip','address')"></div>
-              <div><label>住所</label><input type="text" id="address" placeholder="都道府県 市区町村 町域 …"></div>
-              <div><label>電話番号</label><input type="text" id="tel" placeholder="例：03-1234-5678"></div>
-            </div>
-
-            <!-- 顧客リスト操作（書類側） -->
-            <div class="toolbar">
-              <button class="accent" onclick="registerCustomer()">宛先を顧客登録</button>
-              <button onclick="openCustomerModal()">顧客から呼び出す…</button>
-              <input type="file" id="customerFile" accept=".csv,.xls,.xlsx" style="display:none" onchange="importCustomersFile(event)">
-              <button onclick="document.getElementById('customerFile').click()">顧客Excel読込</button>
-              <button onclick="exportCustomersExcel()">顧客Excel出力</button>
-              <button onclick="downloadCustomerSample()">顧客サンプルDL</button>
-            </div>
-
-            <div class="toolbar">
-              <button onclick="addRow()">明細を追加</button>
-            </div>
-
-            <table class="doc-table" id="itemTable">
-              <thead>
-                <tr>
-                  <th>#</th><th>商品名</th><th>品番</th><th>数量</th><th id="unitHead">単価</th><th>小計</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-
-            <div class="row">
-              <div>
-                <label>備考</label>
-                <textarea id="notes" rows="3"></textarea>
-              </div>
-            </div>
-          </div>
-        </section>
+      <div class="list-row">
+        <div class="muted">税率別内訳：10%対象 税抜 ¥0 / 税額 ¥0</div>
       </div>
-    </div>
-  </section>
-
-  <div id="printArea" class="print-doc"></div>
-
-  <!-- 顧客リスト モーダル（書類側：選択専用） -->
-  <div id="customerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;align-items:center;justify-content:center">
-    <div style="width:min(720px,92vw);max-height:80vh;background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;display:flex;flex-direction:column">
-      <div style="padding:10px 12px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;align-items:center">
-        <strong>顧客リスト</strong>
-        <input id="customerSearch" type="text" placeholder="顧客名・住所・TEL・備考で検索" style="margin-left:auto;min-width:240px;padding:8px;border:1px solid #e5e7eb;border-radius:8px">
-        <button onclick="closeCustomerModal()">閉じる</button>
-      </div>
-      <div id="customerList" style="padding:12px;overflow:auto"></div>
     </div>
   </div>
-</main>
 
-<!-- アプリ本体 -->
-<script src="app_v1_11.js"></script>
-</body>
-</html>
+  <div class="bottombar">
+    <button class="btn" onclick="showView('docs')">一覧へ</button>
+    <button class="btn btn-primary" onclick="alert('PDFプレビューUIモック')">プレビュー</button>
+  </div>
+</section>
+
+<!-- Slide-over sheets (mock forms) -->
+<dialog id="customerForm" style="border:none;border-radius:16px;max-width:640px;width:92%;">
+  <form method="dialog" style="padding:12px;">
+    <div class="title-lg">顧客 新規登録</div>
+    <div class="spacer"></div>
+    <label class="field-label">宛名（必須）</label>
+    <input class="input" required="">
+    <label class="field-label">郵便番号</label>
+    <input class="input" id="cust_zip" inputmode="numeric" autocomplete="postal-code" placeholder="6496514">
+    <label class="field-label">住所</label>
+    <input class="input" id="cust_addr" autocomplete="street-address">
+    <label class="field-label">電話番号</label>
+    <input class="input" id="cust_tel" inputmode="tel" autocomplete="tel" placeholder="0736733038">
+    <label class="field-label">仕事内容</label>
+    <select class="input"><option>未選択</option><option>新築</option><option>修繕</option><option>張替</option></select>
+    <label class="field-label">現場住所（GoogleMapのURL）</label>
+    <input class="input" inputmode="url" placeholder="https://maps.google.com/…">
+    <label class="field-label">備考</label>
+    <textarea class="input" rows="3"></textarea>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" value="cancel" formnovalidate="">キャンセル</button>
+      <button class="btn btn-primary" value="default">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="vendorForm" style="border:none;border-radius:16px;max-width:640px;width:92%;">
+  <form method="dialog" style="padding:12px;">
+    <div class="title-lg">取引先 新規登録</div>
+    <div class="spacer"></div>
+    <label class="field-label">会社名（必須）</label>
+    <input class="input" required="">
+    <label class="field-label">郵便番号</label>
+    <input class="input" inputmode="numeric">
+    <label class="field-label">住所</label>
+    <input class="input" id="cust_addr" autocomplete="street-address">
+    <label class="field-label">電話番号 / FAX</label>
+    <div class="row-flex"><input class="input" inputmode="tel" placeholder="TEL"><input class="input" inputmode="tel" placeholder="FAX"></div>
+    <label class="field-label">メール / 担当者 / 登録番号</label>
+    <div class="row-flex"><input class="input" inputmode="email" placeholder="mail@example.com"><input class="input" placeholder="担当者"><input class="input" placeholder="登録番号"></div>
+    <label class="field-label">備考</label>
+    <textarea class="input" rows="3"></textarea>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" value="cancel" formnovalidate="">キャンセル</button>
+      <button class="btn btn-primary" value="default">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="productForm" style="border:none;border-radius:16px;max-width:640px;width:92%;">
+  <form method="dialog" style="padding:12px;">
+    <div class="title-lg">商品 新規登録</div>
+    <div class="spacer"></div>
+    <label class="field-label">品名（必須）</label><input class="input" required="">
+    <label class="field-label">品番</label><input class="input">
+    <label class="field-label">規格</label><input class="input">
+    <div class="row-flex">
+      <div style="flex:1"><label class="field-label">単位</label><input class="input" placeholder="本 / 個 など"></div>
+      <div style="flex:1"><label class="field-label">最低発注数量</label><input class="input" inputmode="numeric"></div>
+    </div>
+    <div class="row-flex">
+      <div style="flex:1"><label class="field-label">発注先</label><input class="input" placeholder="取引先名"></div>
+      <div style="flex:1"><label class="field-label">参照日</label><input class="input" type="date"></div>
+    </div>
+    <div class="row-flex">
+      <div style="flex:1"><label class="field-label">仕入単価</label><input class="input" inputmode="decimal"></div>
+      <div style="flex:1"><label class="field-label">販売単価</label><input class="input" inputmode="decimal"></div>
+    </div>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" value="cancel" formnovalidate="">キャンセル</button>
+      <button class="btn btn-primary" value="default">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const historyStack = [];
+  const titleMap = {
+    home: "業務アプリ",
+    product: "商品検索",
+    customer: "顧客リスト",
+    vendor: "取引先リスト",
+    settings: "設定",
+    docs: "書類作成",
+    estimate: "見積書作成",
+    purchase: "発注書作成",
+    invoice: "請求書作成"
+  };
+
+  function showView(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('topTitle').textContent = titleMap[id] || "";
+    const backBtn = document.getElementById('backBtn');
+    if(id==='home'){ backBtn.style.display='none'; }
+    else { backBtn.style.display=''; }
+    historyStack.push(id);
+    checkRequired();
+    if(id==='invoice') refreshInvoiceSelf();
+
+    if(id==='estimate'){
+      // set today's date to estDate if empty
+      const estDate = document.getElementById('estDate');
+      if (estDate && !estDate.value){
+        const tzOffset = (new Date()).getTimezoneOffset()*60000;
+        const today = new Date(Date.now()-tzOffset).toISOString().slice(0,10);
+        estDate.value = today; updateEstimateNoPreview();
+      }
+    }
+
+  }
+
+  function goBack(){
+    historyStack.pop(); // current
+    const prev = historyStack.pop() || 'home';
+    showView(prev || 'home');
+  }
+
+  function showSheet(id){
+    const dlg = document.getElementById(id);
+    if(!dlg) return;
+    dlg.showModal();
+  }
+
+  function checkRequired(){
+    const active = document.querySelector('.screen.active');
+    const saveBtn = document.getElementById('saveBtn');
+    let ok = false;
+    if(active){
+      if(active.id==='estimate'){
+        ok = !!document.getElementById('estTitle').value && !!document.getElementById('estDue').value;
+      }else if(active.id==='invoice'){
+        const req = active.querySelectorAll('input[oninput*="checkRequired"]');
+        ok = Array.from(req).every(i=>i.value);
+      }else if(active.id==='settings'){
+        ok = dirtySettings;
+      }
+    }
+    saveBtn.disabled = !ok;
+  }
+
+  // Simple settings store (in-memory for mock)
+  let settings = {
+    name:"フルハウス児玉",
+    zip:"649-6514",
+    addr:"和歌山県紀の川市藤井916",
+    rep:"児玉征紀（こだま もとき）",
+    tel:"0736-73-3038",
+    tax:"T4810046688050",
+    mail:"",
+    bank:"紀陽銀行",
+    branch:"打田支店",
+    btype:"普通",
+    bno:"336048"
+  };
+  let dirtySettings = false;
+  function markDirty(){ dirtySettings = true; checkRequired(); }
+  function saveSettings(){
+    settings.name = document.getElementById('s_name').value || settings.name;
+    settings.zip = document.getElementById('s_zip').value || settings.zip;
+    settings.addr = document.getElementById('s_addr').value || settings.addr;
+    settings.rep = document.getElementById('s_rep').value || settings.rep;
+    settings.tel = document.getElementById('s_tel').value || settings.tel;
+    settings.tax = document.getElementById('s_tax').value || settings.tax;
+    settings.mail= document.getElementById('s_mail').value || settings.mail;
+    settings.bank= document.getElementById('b_bank').value || settings.bank;
+    settings.branch=document.getElementById('b_branch').value || settings.branch;
+    settings.btype=document.getElementById('b_type').value || settings.btype;
+    settings.bno=document.getElementById('b_no').value || settings.bno;
+    dirtySettings = false;
+    checkRequired();
+    alert('設定を保存しました（UIモック）。');
+    refreshInvoiceSelf();
+  }
+  function refreshInvoiceSelf(){
+    const t = `${settings.name} / ${settings.bank} ${settings.branch} ${settings.btype}:${settings.bno}`;
+    const el = document.getElementById('invSelf');
+    if(el) el.textContent = t;
+  }
+
+  // Populate simple sample list for products
+  const sample = [
+    {品名:"補強パイプ",品番:"HLG-74",規格:"直径22mm x 1.5mm",参照日:"2025/09/01",販売単価:"1,280"},
+    {品名:"固定クランプ",品番:"CTL2-82",規格:"25mm用",参照日:"2025/08/20",販売単価:"350"},
+    {品名:"透明フィルム",品番:"BPD-64",規格:"0.1mm x 2m",参照日:"2025/07/12",販売単価:"980"}
+  ];
+  const pList = document.getElementById('pList');
+  sample.forEach(r=>{
+    const row = document.createElement('div');
+    row.className='list-row';
+    row.innerHTML = `<div>
+      <div><strong>${r.品名}</strong> <span class="muted">(${r.品番})</span></div>
+      <div class="muted">${r.規格} ・ 参照日 ${r.参照日}</div>
+    </div>
+    <div>¥${r.販売単価} <span class="disclosure">></span></div>`;
+    pList.appendChild(row);
+  });
+
+  // default open
+  historyStack.push('home');
+
+  // === 見積番号の自動プレビュー ===
+  let selectedCustomerName = ""; // 宛先名（ダミー選択）
+  let selectedKeisho = "御中";   // 敬称
+  function selectDemoCustomer(){
+    // デモ：顧客選択UIの代わりに固定名をセット
+    selectedCustomerName = "山田工務店";
+    document.getElementById('estCustomer').textContent = selectedCustomerName;
+    updateEstimateNoPreview();
+    alert('顧客「山田工務店」を選択しました（モック）。');
+  }
+  function updateEstimateNoPreview(){
+    const d = document.getElementById('estDate')?.value || "";
+    const keisho = document.getElementById('estKeisho')?.textContent || selectedKeisho;
+    const preview = document.getElementById('estNoPreview');
+    if (!preview) return;
+    if (!selectedCustomerName || !d){
+      preview.textContent = "未確定（宛先と日付で自動生成）";
+      return;
+    }
+    const ymd = d.replaceAll('-','');
+    const seq = 1; // モックでは常に 1（保存時に確定）
+    preview.textContent = `${selectedCustomerName}${keisho}_${ymd}K_${seq}`;
+  }
+  // 見積日変更で更新
+  (function hookEstDateChange(){
+    document.addEventListener('input', (e)=>{
+      if (e.target && e.target.id === 'estDate') updateEstimateNoPreview();
+    }, true);
+  })();
+
+
+  // === 郵便番号→住所自動、数値制限、ハイフン自動 ===
+  (function setupZipTelHelpers(){
+    const zip = document.getElementById('cust_zip');
+    const addr = document.getElementById('cust_addr');
+    const tel = document.getElementById('cust_tel');
+
+    // 数値のみ＆郵便番号フォーマット XXX-XXXX（入力途中も自然に）
+    let lastZipFetched = '';
+    function formatZipProgressive(raw){
+      const d = raw.replace(/[^0-9]/g, '').slice(0,7);
+      if (d.length <= 3) return d;
+      return d.slice(0,3) + '-' + d.slice(3);
+    }
+    async function fetchAddressIfReady(rawDigits){
+      if (rawDigits.length !== 7) return;
+      if (lastZipFetched === rawDigits) return;
+      lastZipFetched = rawDigits;
+      try{
+        const res = await fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + rawDigits);
+        const data = await res.json();
+        if (data && data.results && data.results[0] && addr){
+          const r = data.results[0];
+          addr.value = (r.address1||'') + (r.address2||'') + (r.address3||'');
+        }
+      }catch(e){
+        console.warn('zipcloud failed', e);
+      }
+    }
+
+    if (zip){
+      zip.addEventListener('input', (e)=>{
+        const raw = e.target.value;
+        const digits = raw.replace(/[^0-9]/g,'');
+        e.target.value = formatZipProgressive(digits);
+        // 7桁そろったら住所検索
+        fetchAddressIfReady(digits);
+      });
+      zip.addEventListener('blur', (e)=>{
+        const digits = e.target.value.replace(/[^0-9]/g,'');
+        e.target.value = formatZipProgressive(digits);
+        fetchAddressIfReady(digits);
+      });
+    }
+
+    // 電話番号：数字のみ + ハイフン自動（簡易：080/090/070/050/0120は3-4-4、11桁も3-4-4、10桁は2-4-4）
+    function formatTel(raw){
+      const d = raw.replace(/[^0-9]/g,'').slice(0,11);
+      if (d.length <= 3) return d;
+      const mobilePrefixes = /^(070|080|090|050|0120)/;
+      if (d.length === 11) return d.slice(0,3) + '-' + d.slice(3,7) + '-' + d.slice(7);
+      if (d.length === 10){
+        if (mobilePrefixes.test(d)) return d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+        // 地方局番想定：2-4-4（※簡易）
+        return d.slice(0,2) + '-' + d.slice(2,6) + '-' + d.slice(6);
+      }
+      // 途中入力時の自然な区切り（3-4-残り）
+      if (d.length > 7) return d.slice(0,3) + '-' + d.slice(3,7) + '-' + d.slice(7);
+      if (d.length > 3) return d.slice(0,3) + '-' + d.slice(3);
+      return d;
+    }
+
+    if (tel){
+      tel.addEventListener('input', (e)=>{
+        e.target.value = formatTel(e.target.value);
+      });
+      tel.addEventListener('blur', (e)=>{
+        e.target.value = formatTel(e.target.value);
+      });
+    }
+  })();
+
+</script>
+
+
+</body></html>
